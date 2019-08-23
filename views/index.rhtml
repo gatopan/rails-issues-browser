@@ -1,0 +1,121 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Issues</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  </head>
+  <body>
+    <div class="container">
+      <h1><%= "#{@repository_name} by #{@repository_owner}" %></h1>
+      <form action='/' method='get' id='form'>
+        <div class='form-row'>
+          <div class="form-group col-2">
+            <label for="filter-label">Labels Filter</label>
+            <select name='filter[label]' multiple class="form-control" id="filter-label">
+              <% FILTER_LABEL_WHITELIST.each do |label| %>
+                <option <%= 'selected' if @filter_labels.include?(label)%>><%= label %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="form-group col-2">
+            <label for="filter-state">States Filter</label>
+            <select name='filter[state]' multiple class="form-control" id="filter-state">
+              <% FILTER_STATE_WHITELIST.each do |state| %>
+                <option <%= 'selected' if @filter_states.include?(state)%>><%= state %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="form-group col-2">
+            <label for="sort-field">Sort Field</label>
+            <select name='sort[field]' class="form-control" id="sort-field">
+              <% SORT_FIELD_WHITELIST.each do |field| %>
+                <option <%= 'selected' if @sort_field == field %>><%= field %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="form-group col-2">
+            <label for="sort-direction">Sort Direction</label>
+            <select name='sort[direction]' class="form-control" id="sort-direction">
+              <% SORT_DIRECTION_WHITELIST.each do |direction| %>
+                <option <%= 'selected' if @sort_direction == direction %>><%= direction %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="form-group col-2">
+            <label for="pagination-limit">Result</label>
+            <select name='pagination[limit]' class="form-control" id="pagination-limit">
+              <% PAGINATION_LIMIT_RANGE.each do |limit| %>
+                <option <%= 'selected' if @pagination_limit == limit %>><%= limit %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="form-group col-2">
+            <label for="submit-button">Actions</label>
+            <button type="submit" class="btn btn-primary btn-block" id='submit-button'>Filter</button>
+          </div>
+        </div>
+      </form>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Title</th>
+            <th scope="col">Status</th>
+            <th scope="col">Created At</th>
+            <th scope="col">Labels</th>
+            <th scope="col">Comments</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @query_response.data.repository.issues.edges.each do |issue| %>
+            <tr class='table-row' data-href='<%= issue.node.url %>'>
+              <th scope="row"><%= issue.node.number %></th>
+              <td><%= issue.node.title %></td>
+              <td><%= issue.node.state.capitalize %></td>
+              <td><%= issue.node.created_at.to_datetime.strftime("%B %d, %Y") %></td>
+              <td>
+                <% (issue.node.labels.edges.map{|edge| edge.node.name } & FILTER_LABEL_WHITELIST).each do |label| %>
+                  <span class="badge badge-primary"><%= label %></span>
+                <% end %>
+              </td>
+              <td><%= issue.node.comments.total_count %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+          <li class="page-item <%= @query_response.data.repository.issues.page_info.has_previous_page ? '' : 'disabled' %>">
+            <a class="page-link" href="<%= "/?filter[label]=#{@filter_labels.join(',')}&filter[state]=#{@filter_states.join(',')}&pagination[cursor]=#{@query_response.data.repository.issues.page_info.start_cursor}&pagination[direction]=before&pagination[limit]=#{@pagination_limit}&sort[direction]=#{@sort_direction}&sort[field]=#{@sort_field}" %>">Previous</a>
+          </li>
+          <li class="page-item <%= @query_response.data.repository.issues.page_info.has_next_page ? '' : 'disabled' %>">
+            <a class="page-link" href="<%= "/?filter[label]=#{@filter_labels.join(',')}&filter[state]=#{@filter_states.join(',')}&pagination[cursor]=#{@query_response.data.repository.issues.page_info.end_cursor}&pagination[direction]=after&pagination[limit]=#{@pagination_limit}&sort[direction]=#{@sort_direction}&sort[field]=#{@sort_field}" %>">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script>
+      $(document).ready(function($) {
+        $(".table-row").click(function() {
+          window.document.location = $(this).data("href");
+        });
+      });
+      $(function() {
+        $('#form').on("submit",function(e) {
+          $('#submit-button').prop('disabled', true);
+          var contatenatedFilterLabels = $('#filter-label').val().join();
+          var contatenatedFilterStates = $('#filter-state').val().join();
+          $('#filter-label').removeAttr('multiple');
+          $('#filter-state').removeAttr('multiple');
+          $('#filter-label').append('<option value="' + contatenatedFilterLabels + '" selected="selected"></option>');
+          $('#filter-state').append('<option value="' + contatenatedFilterStates+ '" selected="selected"></option>');
+          this.submit();
+        });
+      });
+    </script>
+  </body>
+</html>
